@@ -187,33 +187,6 @@ After pull - Windows matches Mac:
 
 ---
 
-## Visual Studio Post-Build (Optional)
-
-Auto-push after every build. Add to **Project Properties → Build Events → Post-Build Event**:
-
-```
-"C:\Users\YourUsername\repos\parasync\.venv\Scripts\parasync.exe" push --name default
-```
-
----
-
-## CLI Commands (Optional)
-
-The GUI handles everything, but CLI is available:
-
-```powershell
-# Test connection
-.\.venv\Scripts\parasync test --name default
-
-# Push files
-.\.venv\Scripts\parasync push --name default
-
-# Pull files
-.\.venv\Scripts\parasync pull --name default
-```
-
----
-
 ## Troubleshooting
 
 ### "No Mac found on network"
@@ -243,20 +216,20 @@ ls ~/Parallels_EXCHANGE
 ```
 Windows (Parallels VM)              Mac (Host)
         │                              │
-        │  1. Scan 10.211.55.x:22     │
-        │ ─────────────────────────▶  │  (finds Mac)
+        │  1. Scan 10.211.55.x:22      │
+        │ ─────────────────────────▶   │  (finds Mac)
         │                              │
-        │  2. ssh-keygen (local)      │
+        │  2. ssh-keygen (local)       │
         │                              │
-        │  3. ssh: install key        │
-        │ ─────────────────────────▶  │  (one-time setup)
+        │  3. ssh: install key         │
+        │ ─────────────────────────▶   │  (one-time setup)
         │                              │
-        │  PUSH: Clean + Copy         │
-        │ ─────────────────────────▶  │  (mirror to Mac)
+        │  PUSH: Clean + Copy          │
+        │ ─────────────────────────▶   │  (mirror to Mac)
         │                              │
-        │  PULL: Clean + Copy         │
-        │ ◀─────────────────────────  │  (mirror to Windows)
-        │                              │
+        │  PULL: Clean + Copy          │
+        │ ◀─────────────────────────   │  (mirror to Windows)
+        │                              
 ```
 
 ---
