@@ -608,7 +608,14 @@ class MainWindow(QMainWindow):
         if not self.key_ok and not self.ssh_ok:
             QMessageBox.warning(self, "Not Connected", "Setup SSH connection first.")
             return
-        self._run_worker("push")
+        reply = QMessageBox.warning(
+            self, "Confirm Push",
+            f"This will DELETE everything in:\n{self.remote_path}\n\n"
+            f"And replace it with contents of:\n{self.local_path}\n\nContinue?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            self._run_worker("push")
 
     def _do_pull(self):
         if not self.mac_ip:
@@ -620,7 +627,14 @@ class MainWindow(QMainWindow):
         if not self.key_ok and not self.ssh_ok:
             QMessageBox.warning(self, "Not Connected", "Setup SSH connection first.")
             return
-        self._run_worker("pull")
+        reply = QMessageBox.warning(
+            self, "Confirm Pull",
+            f"This will DELETE everything in:\n{self.local_path}\n\n"
+            f"And replace it with contents of:\n{self.remote_path}\n\nContinue?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            self._run_worker("pull")
 
     def _browse_local(self):
         path = QFileDialog.getExistingDirectory(self, "Select Local Folder", str(Path.home()))
