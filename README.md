@@ -111,7 +111,10 @@ This clones, installs, and launches the app. Run it anytime to update.
 ### Every Time After
 
 1. Double-click the **ParaSync** shortcut on your desktop
-2. Click **PUSH TO MAC** or **PULL FROM MAC**
+2. Choose your sync mode:
+   - **SYNC BOTH** (recommended) - merges folders, no deletes
+   - **PUSH** - mirrors Windows to Mac
+   - **PULL** - mirrors Mac to Windows
 
 Push/Pull shows a **diff preview** first so you see exactly what will change. Deleted files go to trash, not permanent delete.
 
@@ -178,7 +181,7 @@ After pull - Windows matches Mac:
 - **Diff preview** - See exactly what will be added/deleted/updated before syncing
 - **Safe sync** - Deleted files go to trash (~/.Trash on Mac, ~/.parasync_trash on Windows)
 - **One-click passwordless setup** - Never type password again
-- **Watch mode** - Auto-push when local folder changes (checkbox)
+- **Auto mode** - Automatically copies new Windows files to Mac (one-way, no deletes)
 - **Desktop shortcut** - Created automatically by installer
 - **Remembers settings** - Saved to ~/.parasync/config.json
 
