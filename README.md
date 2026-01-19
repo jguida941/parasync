@@ -2,7 +2,7 @@
 
 Dead simple file sync between Windows and macOS over SSH. Built for Parallels.
 
-![ParaSync App](imgs/app-screenshot.png)
+<!-- Screenshot placeholder - add new screenshot showing 3 buttons -->
 
 ## Quick Install (Windows)
 
@@ -22,7 +22,10 @@ This installs, updates, launches the app, and creates a **desktop shortcut**. Ru
 2. **App auto-finds your Mac** (scans the Parallels network)
 3. **Click "Setup Passwordless"** (one-time, enter Mac password once)
 4. **Click Browse** to select a folder
-5. **Click PUSH** or **PULL**
+5. **Choose your sync mode:**
+   - **SYNC BOTH** - Merge folders (recommended, no deletes)
+   - **PUSH** - Mirror Windows → Mac
+   - **PULL** - Mirror Mac → Windows
 
 That's it. Folders stay in sync.
 
@@ -114,8 +117,21 @@ Push/Pull shows a **diff preview** first so you see exactly what will change. De
 
 ---
 
+## Sync Modes
+
+| Mode | What it does | Deletes files? |
+|------|--------------|----------------|
+| **SYNC BOTH** | Copies missing files to both sides | No |
+| **PUSH** | Makes Mac match Windows exactly | Yes (to trash) |
+| **PULL** | Makes Windows match Mac exactly | Yes (to trash) |
+
+**SYNC BOTH** is the safest - it merges both folders without deleting anything.
+
+---
+
 ## GUI Features
 
+- **Three sync modes** - SYNC BOTH (merge), PUSH (mirror to Mac), PULL (mirror to Windows)
 - **Auto-detect Mac** - No typing IP addresses
 - **File browser panels** - See contents of both local and remote folders
 - **Diff preview** - See exactly what will be added/deleted/updated before syncing
