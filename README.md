@@ -50,17 +50,19 @@ Should show something like `10.211.55.2` (the app finds this automatically)
 
 Press `Win + X` → **Windows PowerShell** (or Terminal)
 
-#### Step 2: Install Python (if not installed)
+#### Step 2: Install Python and Git (if not installed)
 
 ```powershell
 winget install Python.Python.3.12
+winget install Git.Git
 ```
 
 **Close and reopen PowerShell** after installing.
 
-Verify it worked:
+Verify they worked:
 ```powershell
 python --version
+git --version
 ```
 
 #### Step 3: Clone the repo
