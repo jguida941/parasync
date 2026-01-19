@@ -18,12 +18,12 @@ if (-not (Test-Path ".venv")) {
 # Always reinstall (catches updates)
 .\.venv\Scripts\pip install -e . --quiet
 
-# Create desktop shortcut
+# Create desktop shortcut pointing to batch file
 $Desktop = [Environment]::GetFolderPath("Desktop")
 $ShortcutPath = "$Desktop\ParaSync.lnk"
 $WshShell = New-Object -ComObject WScript.Shell
 $Shortcut = $WshShell.CreateShortcut($ShortcutPath)
-$Shortcut.TargetPath = "$RepoDir\.venv\Scripts\parasync-gui.exe"
+$Shortcut.TargetPath = "$RepoDir\parasync.bat"
 $Shortcut.WorkingDirectory = $RepoDir
 $Shortcut.Save()
 
