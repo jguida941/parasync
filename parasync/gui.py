@@ -199,6 +199,7 @@ class SyncWorker(threading.Thread):
             "setup": self._do_full_setup,
             "push": self._do_push,
             "pull": self._do_pull,
+            "sync": self._do_sync,
             "list_remote": self._do_list_remote,
         }
         if self.operation in ops:
@@ -327,6 +328,56 @@ class SyncWorker(threading.Thread):
             self.signals.finished.emit(True, "Pulled: (remote folder empty)")
         else:
             self.signals.finished.emit(False, f"Pull failed: {err}")
+
+    def _do_sync(self):
+        """Two-way merge: copy missing files to both sides, no deletes."""
+        local = Path(self.local_path)
+        if not local.exists():
+            local.mkdir(parents=True, exist_ok=True)
+
+        # Get local files
+        local_files = {f.name for f in local.iterdir()} if local.exists() else set()
+
+        # Get remote files
+        self.signals.progress.emit("Checking remote files...")
+        cmd = self._ssh_args() + [self._remote(), f"ls -1 '{self.remote_path}' 2>/dev/null || echo ''"]
+        ok, out, err = self._run_cmd(cmd, timeout=15)
+        remote_files = set()
+        if ok:
+            remote_files = {f for f in out.strip().split('\n') if f}
+
+        # Ensure remote folder exists
+        mkdir_cmd = self._ssh_args() + [self._remote(), f"mkdir -p '{self.remote_path}'"]
+        self._run_cmd(mkdir_cmd, timeout=15)
+
+        # Copy local-only files to remote
+        local_only = local_files - remote_files
+        if local_only:
+            self.signals.progress.emit(f"Copying {len(local_only)} files to Mac...")
+            for fname in local_only:
+                item = local / fname
+                scp_cmd = self._scp_args() + [str(item), f"{self._remote()}:{self.remote_path}/"]
+                ok, out, err = self._run_cmd(scp_cmd, timeout=300)
+                if not ok:
+                    self.signals.finished.emit(False, f"Failed to copy {fname} to Mac: {err}")
+                    return
+
+        # Copy remote-only files to local
+        remote_only = remote_files - local_files
+        if remote_only:
+            self.signals.progress.emit(f"Copying {len(remote_only)} files from Mac...")
+            for fname in remote_only:
+                scp_cmd = self._scp_args() + [f"{self._remote()}:{self.remote_path}/{fname}", str(local)]
+                ok, out, err = self._run_cmd(scp_cmd, timeout=300)
+                if not ok:
+                    self.signals.finished.emit(False, f"Failed to copy {fname} from Mac: {err}")
+                    return
+
+        total = len(local_only) + len(remote_only)
+        if total == 0:
+            self.signals.finished.emit(True, "Already in sync!")
+        else:
+            self.signals.finished.emit(True, f"Synced: +{len(local_only)} to Mac, +{len(remote_only)} to Windows")
 
     def _do_list_remote(self):
         """List files in remote directory."""
@@ -481,17 +532,27 @@ class MainWindow(QMainWindow):
         # === ACTION BUTTONS ===
         btn_layout = QHBoxLayout()
 
-        self.btn_push = QPushButton("PUSH TO MAC →")
+        self.btn_push = QPushButton("PUSH →")
         self.btn_push.setMinimumHeight(50)
-        self.btn_push.setFont(QFont("", 14, QFont.Weight.Bold))
+        self.btn_push.setFont(QFont("", 12, QFont.Weight.Bold))
         self.btn_push.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; }")
+        self.btn_push.setToolTip("Mirror Windows → Mac (deletes extras on Mac)")
         self.btn_push.clicked.connect(self._do_push)
         btn_layout.addWidget(self.btn_push)
 
-        self.btn_pull = QPushButton("← PULL FROM MAC")
+        self.btn_sync = QPushButton("⟷ SYNC BOTH")
+        self.btn_sync.setMinimumHeight(50)
+        self.btn_sync.setFont(QFont("", 12, QFont.Weight.Bold))
+        self.btn_sync.setStyleSheet("QPushButton { background-color: #9C27B0; color: white; }")
+        self.btn_sync.setToolTip("Merge both folders (no deletes)")
+        self.btn_sync.clicked.connect(self._do_sync_ui)
+        btn_layout.addWidget(self.btn_sync)
+
+        self.btn_pull = QPushButton("← PULL")
         self.btn_pull.setMinimumHeight(50)
-        self.btn_pull.setFont(QFont("", 14, QFont.Weight.Bold))
+        self.btn_pull.setFont(QFont("", 12, QFont.Weight.Bold))
         self.btn_pull.setStyleSheet("QPushButton { background-color: #2196F3; color: white; }")
+        self.btn_pull.setToolTip("Mirror Mac → Windows (deletes extras on Windows)")
         self.btn_pull.clicked.connect(self._do_pull)
         btn_layout.addWidget(self.btn_pull)
 
@@ -553,6 +614,7 @@ class MainWindow(QMainWindow):
 
     def _set_busy(self, busy: bool, message: str = ""):
         self.btn_push.setEnabled(not busy)
+        self.btn_sync.setEnabled(not busy)
         self.btn_pull.setEnabled(not busy)
         self.btn_setup.setEnabled(not busy and not self.key_ok)
         self.btn_rescan.setEnabled(not busy)
@@ -625,6 +687,14 @@ class MainWindow(QMainWindow):
             else:
                 self._log(f"Failed: {message}")
                 QMessageBox.warning(self, "Pull Failed", message)
+
+        elif op == "sync":
+            if success:
+                self._log(message)
+                self._refresh_both()
+            else:
+                self._log(f"Failed: {message}")
+                QMessageBox.warning(self, "Sync Failed", message)
 
         elif op == "list_remote":
             if not success and message:
@@ -740,6 +810,52 @@ class MainWindow(QMainWindow):
         )
         if dialog.exec() == QDialog.DialogCode.Accepted:
             self._run_worker("pull")
+
+    def _do_sync_ui(self):
+        if not self.mac_ip:
+            QMessageBox.warning(self, "No Mac", "Scan for Mac first.")
+            return
+        if not self.local_path:
+            QMessageBox.warning(self, "No Local Path", "Select a local folder first (click Browse).")
+            return
+        if not self.key_ok and not self.ssh_ok:
+            QMessageBox.warning(self, "Not Connected", "Setup SSH connection first.")
+            return
+
+        # Get file lists
+        local_files = set()
+        local = Path(self.local_path)
+        if local.exists():
+            local_files = {f.name for f in local.iterdir()}
+
+        remote_files = set()
+        for i in range(self.list_remote.count()):
+            item = self.list_remote.item(i)
+            if item and item.text() not in ["(empty)", "(not connected)"]:
+                remote_files.add(item.text())
+
+        # Calculate what will be synced
+        to_mac = local_files - remote_files
+        to_windows = remote_files - local_files
+
+        if not to_mac and not to_windows:
+            QMessageBox.information(self, "Already Synced", "Both folders have the same files!")
+            return
+
+        # Show sync preview
+        msg = "SYNC will merge both folders (no deletes):\n\n"
+        if to_mac:
+            msg += f"→ Copy to Mac: {', '.join(sorted(to_mac))}\n"
+        if to_windows:
+            msg += f"← Copy to Windows: {', '.join(sorted(to_windows))}\n"
+        msg += f"\nTotal: +{len(to_mac)} to Mac, +{len(to_windows)} to Windows"
+
+        reply = QMessageBox.question(
+            self, "Confirm Sync", msg,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            self._run_worker("sync")
 
     def _browse_local(self):
         path = QFileDialog.getExistingDirectory(self, "Select Local Folder", str(Path.home()))
