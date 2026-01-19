@@ -18,16 +18,14 @@ if (-not (Test-Path ".venv")) {
 # Always reinstall (catches updates)
 .\.venv\Scripts\pip install -e . --quiet
 
-# Create desktop shortcut (uses pythonw so no console window)
+# Create desktop shortcut
 $Desktop = [Environment]::GetFolderPath("Desktop")
 $ShortcutPath = "$Desktop\ParaSync.lnk"
 $WshShell = New-Object -ComObject WScript.Shell
 $Shortcut = $WshShell.CreateShortcut($ShortcutPath)
-$Shortcut.TargetPath = "$RepoDir\.venv\Scripts\pythonw.exe"
-$Shortcut.Arguments = "-m parasync.gui"
+$Shortcut.TargetPath = "$RepoDir\.venv\Scripts\parasync-gui.exe"
 $Shortcut.WorkingDirectory = $RepoDir
 $Shortcut.Save()
-Write-Host "Desktop shortcut created!"
 
-# Launch the app (detached from console)
-Start-Process "$RepoDir\.venv\Scripts\pythonw.exe" -ArgumentList "-m parasync.gui"
+# Launch the app
+.\.venv\Scripts\parasync-gui
