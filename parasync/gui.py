@@ -200,6 +200,7 @@ class SyncWorker(threading.Thread):
             "push": self._do_push,
             "pull": self._do_pull,
             "sync": self._do_sync,
+            "auto_sync": self._do_auto_sync,
             "list_remote": self._do_list_remote,
         }
         if self.operation in ops:
@@ -378,6 +379,43 @@ class SyncWorker(threading.Thread):
             self.signals.finished.emit(True, "Already in sync!")
         else:
             self.signals.finished.emit(True, f"Synced: +{len(local_only)} to Mac, +{len(remote_only)} to Windows")
+
+    def _do_auto_sync(self):
+        """One-way add-only: copy new Windows files to Mac, never delete, never copy back."""
+        local = Path(self.local_path)
+        if not local.exists():
+            self.signals.finished.emit(True, "No local folder")
+            return
+
+        # Get local files
+        local_files = {f.name for f in local.iterdir()} if local.exists() else set()
+
+        # Get remote files
+        self.signals.progress.emit("Checking Mac files...")
+        cmd = self._ssh_args() + [self._remote(), f"ls -1 '{self.remote_path}' 2>/dev/null || echo ''"]
+        ok, out, err = self._run_cmd(cmd, timeout=15)
+        remote_files = set()
+        if ok:
+            remote_files = {f for f in out.strip().split('\n') if f}
+
+        # Ensure remote folder exists
+        mkdir_cmd = self._ssh_args() + [self._remote(), f"mkdir -p '{self.remote_path}'"]
+        self._run_cmd(mkdir_cmd, timeout=15)
+
+        # Only copy local-only files to remote (one-way, add-only)
+        local_only = local_files - remote_files
+        if local_only:
+            self.signals.progress.emit(f"Copying {len(local_only)} new files to Mac...")
+            for fname in local_only:
+                item = local / fname
+                scp_cmd = self._scp_args() + [str(item), f"{self._remote()}:{self.remote_path}/"]
+                ok, out, err = self._run_cmd(scp_cmd, timeout=300)
+                if not ok:
+                    self.signals.finished.emit(False, f"Failed to copy {fname}: {err}")
+                    return
+            self.signals.finished.emit(True, f"Auto-synced: +{len(local_only)} to Mac")
+        else:
+            self.signals.finished.emit(True, "No new files to sync")
 
     def _do_list_remote(self):
         """List files in remote directory."""
@@ -564,7 +602,7 @@ class MainWindow(QMainWindow):
 
         # === WATCH MODE ===
         watch_layout = QHBoxLayout()
-        self.chk_watch = QCheckBox("Auto-sync when local folder changes (safe, no deletes)")
+        self.chk_watch = QCheckBox("Auto: copy new Windows files to Mac (one-way, no deletes)")
         self.chk_watch.stateChanged.connect(self._toggle_watch)
         watch_layout.addWidget(self.chk_watch)
         self.lbl_watch = QLabel("")
@@ -699,6 +737,13 @@ class MainWindow(QMainWindow):
             else:
                 self._log(f"Failed: {message}")
                 QMessageBox.warning(self, "Sync Failed", message)
+
+        elif op == "auto_sync":
+            if success:
+                self._log(message)
+                self._refresh_both()
+            else:
+                self._log(f"Auto-sync failed: {message}")
 
         elif op == "list_remote":
             if not success and message:
@@ -970,15 +1015,15 @@ class MainWindow(QMainWindow):
             self.debounce_timer.start(2000)
 
     def _do_auto_push(self):
-        """Auto-sync uses SYNC mode (merge only, no deletes) for safety."""
+        """Auto-sync: one-way add-only from Windows to Mac. Never deletes, never copies back."""
         if self.watching and not self.current_worker:
             if not self.mac_ip or not self.local_path:
                 return
             if not self.key_ok and not self.ssh_ok:
                 return
-            self._log("Auto-syncing (change detected)...")
+            self._log("Auto-sync: checking for new files...")
             self._refresh_local()
-            self._run_worker("sync")  # Use sync, not push - no deletes
+            self._run_worker("auto_sync")
 
     def closeEvent(self, event):
         self._stop_watch()
