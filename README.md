@@ -12,19 +12,19 @@ Already have Python 3.10+ and Git? One command does everything:
 irm https://raw.githubusercontent.com/jguida941/parasync/main/install-windows.ps1 | iex
 ```
 
-This installs, updates, and launches the app. Run it anytime to get the latest version.
+This installs, updates, launches the app, and creates a **desktop shortcut**. Run it anytime to update.
 
 ---
 
 ## The Experience
 
-1. **Launch the app**
+1. **Double-click ParaSync** on your desktop
 2. **App auto-finds your Mac** (scans the Parallels network)
 3. **Click "Setup Passwordless"** (one-time, enter Mac password once)
-4. **Drag a folder** into the drop zone
-5. **Click PUSH**
+4. **Click Browse** to select a folder
+5. **Click PUSH** or **PULL**
 
-That's it. Your files are on the Mac.
+That's it. Folders stay in sync.
 
 ---
 
@@ -91,15 +91,15 @@ This clones, installs, and launches the app. Run it anytime to update.
 
 1. **App opens** → Automatically scans and finds your Mac
 2. **Click "Setup Passwordless"** → Enter your Mac password once when prompted
-3. **Drag your folder** into the drop zone (e.g., your Visual Studio Release folder)
+3. **Click Browse** to select your local folder (e.g., your Visual Studio Release folder)
 4. **Click "PUSH TO MAC"**
 
 ### Every Time After
 
-1. Launch the app: `.\.venv\Scripts\parasync-gui`
-2. Click **PUSH TO MAC**
+1. Double-click the **ParaSync** shortcut on your desktop
+2. Click **PUSH TO MAC** or **PULL FROM MAC**
 
-Files appear in `~/Parallels_EXCHANGE` on your Mac.
+Push/Pull does a **true mirror sync** - destination matches source exactly.
 
 ---
 
@@ -110,17 +110,18 @@ Files appear in `~/Parallels_EXCHANGE` on your Mac.
 | Find Mac IP | Scans 10.211.55.x for SSH (port 22) |
 | Create SSH key | Generates ed25519 key with no passphrase |
 | Install key on Mac | Appends to ~/.ssh/authorized_keys |
-| Create remote folder | `mkdir -p` before every push |
-| Copy files | scp with recursive flag |
+| Mirror sync | Cleans destination, then copies all files |
 
 ---
 
 ## GUI Features
 
 - **Auto-detect Mac** - No typing IP addresses
-- **Drag-and-drop** - Drop your build folder, click Push
+- **File browser panels** - See contents of both local and remote folders
+- **True mirror sync** - Push/Pull makes destination match source exactly
 - **One-click passwordless setup** - Never type password again
-- **Watch mode** - Auto-push when files change (checkbox)
+- **Watch mode** - Auto-push when local folder changes (checkbox)
+- **Desktop shortcut** - Created automatically by installer
 - **Remembers settings** - Saved to ~/.parasync/config.json
 
 ---
@@ -189,11 +190,11 @@ Windows (Parallels VM)              Mac (Host)
         │  3. ssh: install key        │
         │ ─────────────────────────▶  │  (one-time setup)
         │                              │
-        │  4. ssh: mkdir -p           │
-        │ ─────────────────────────▶  │  (create folder)
+        │  PUSH: Clean + Copy         │
+        │ ─────────────────────────▶  │  (mirror to Mac)
         │                              │
-        │  5. scp -r folder           │
-        │ ─────────────────────────▶  │  (copy files)
+        │  PULL: Clean + Copy         │
+        │ ◀─────────────────────────  │  (mirror to Windows)
         │                              │
 ```
 
