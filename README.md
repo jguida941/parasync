@@ -99,7 +99,7 @@ This clones, installs, and launches the app. Run it anytime to update.
 1. Double-click the **ParaSync** shortcut on your desktop
 2. Click **PUSH TO MAC** or **PULL FROM MAC**
 
-Push/Pull does a **true mirror sync** - destination matches source exactly.
+Push/Pull shows a **diff preview** first so you see exactly what will change. Deleted files go to trash, not permanent delete.
 
 ---
 
@@ -118,7 +118,8 @@ Push/Pull does a **true mirror sync** - destination matches source exactly.
 
 - **Auto-detect Mac** - No typing IP addresses
 - **File browser panels** - See contents of both local and remote folders
-- **True mirror sync** - Push/Pull makes destination match source exactly
+- **Diff preview** - See exactly what will be added/deleted/updated before syncing
+- **Safe sync** - Deleted files go to trash (~/.Trash on Mac, ~/.parasync_trash on Windows)
 - **One-click passwordless setup** - Never type password again
 - **Watch mode** - Auto-push when local folder changes (checkbox)
 - **Desktop shortcut** - Created automatically by installer
@@ -205,9 +206,11 @@ Windows (Parallels VM)              Mac (Host)
 | Location | File | Purpose |
 |----------|------|---------|
 | Windows | `~/.parasync/config.json` | Saved settings |
+| Windows | `~/.parasync_trash/` | Trash for deleted files (from pull) |
 | Windows | `~/.ssh/id_ed25519_parasync` | SSH private key |
 | Windows | `~/.ssh/id_ed25519_parasync.pub` | SSH public key |
 | Mac | `~/.ssh/authorized_keys` | Contains your public key |
+| Mac | `~/.Trash/` | Trash for deleted files (from push) |
 | Mac | `~/Parallels_EXCHANGE/` | Where files are pushed |
 
 ---
